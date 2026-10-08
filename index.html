@@ -2,167 +2,293 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>FakeHack Simulator v5</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FakeHack v6 — Security Simulator</title>
+<style>
+* { box-sizing: border-box; }
 
-  <style>
-    * { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: #050805;
+  color: #00ff41;
+  font-family: Consolas, "Courier New", monospace;
+}
 
-    body {
-      margin: 0;
-      background: #050805;
-      color: #00ff41;
-      font: 17px Consolas, "Courier New", monospace;
-    }
+header {
+  padding: 5px 22px;
+  border-bottom: 1px solid #17652b;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
 
-    #terminal {
-      padding: 24px;
-      min-height: 100vh;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      line-height: 1.5;
-    }
+header span {
+  font-size: 13px;
+  color: #8cba96;
+}
 
-    #warning {
-      display: none;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: #f4f4f4;
-      color: #222;
-      width: min(460px, 90vw);
-      padding: 25px;
-      border-top: 6px solid #d22;
-      box-shadow: 0 0 90px #ff222255;
-      font: 16px Arial, sans-serif;
-      z-index: 10;
-    }
+#terminal {
+  padding: 22px;
+  height: 55vh;
+  min-height: 260px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.55;
+  font-size: 5px;
+}
 
-    #warning h2 { color: #ba2222; }
+#panel {
+  margin: 5px auto;
+  width: min(600px, 92%);
+  padding: 25px;
+  border: 2px solid #c93636;
+  background: #180b0d;
+  text-align: center;
+  display: none;
+}
 
-    #progress {
-      height: 14px;
-      background: #ddd;
-      margin: 20px 0;
-    }
+#panel h2 {
+  color: #ff5555;
+  margin-top: 0;
+}
 
-    #bar {
-      width: 0%;
-      height: 100%;
-      background: #d22;
-      transition: width 0.3s;
-    }
+#timer {
+  color: #ff5555;
+  font-size: clamp(50px, 12vw, 85px);
+  margin: 5px 0;
+  font-weight: bold;
+}
 
-    button {
-      padding: 10px 18px;
-      cursor: pointer;
-      border: 0;
-      border-radius: 4px;
-      background: #263744;
-      color: white;
-    }
-  </style>
+#progress {
+  background: #38252a;
+  height: 14px;
+  border-radius: 7px;
+  overflow: hidden;
+  margin: 20px 0;
+}
+
+#bar {
+  background: #f44343;
+  width: 0%;
+  height: 100%;
+  transition: width 0.4s linear;
+}
+
+button {
+  padding: 5px 28px;
+  background: #c92929;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover { background: #ed4545; }
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#result {
+  display: none;
+  text-align: center;
+  padding: 35px 20px;
+}
+
+#result h1 {
+  color: #00ff41;
+  font-size: clamp(32px, 7vw, 60px);
+}
+
+#result p { line-height: 1.7; }
+
+.small {
+  color: #9aa99e;
+  font-size: 13px;
+}
+
+</style>
 </head>
-
 <body>
-  <div id="terminal">FAKEHACK v5 - SECURITY SIMULATION
-Initializing virtual environment...</div>
 
-  <div id="warning">
-    <h2>⚠ Security Alert</h2>
-    <p>Suspicious remote connection detected.</p>
-    <p>Checking simulated firewall activity...</p>
-    <div id="progress"><div id="bar"></div></div>
-    <p><strong>Demo alert — not a real Windows warning.</strong></p>
-    <button id="closeButton">Close simulation</button>
+<header>
+  <strong>FAKEHACK v6 // SECURITY SIMULATION</strong>
+  <span>VISUAL DEMO ONLY</span>
+</header>
+
+<div id="terminal">INITIALIZING VIRTUAL ENVIRONMENT...</div>
+
+<div id="panel">
+  <h2>⚠ SIMULATED SECURITY BREACH</h2>
+  <p>Virtual credential extraction in progress</p>
+  <p class="small">No real passwords are being accessed.</p>
+
+  <div id="timer">00:5</div>
+
+  <div id="progress">
+    <div id="bar"></div>
   </div>
 
-  <script>
-    // All effects are visual only.
-    // No real scans, network requests, or file access.
+  <button id="stopButton">STOP ATTACK</button>
+  <p class="small">You can also close this browser tab.</p>
+</div>
 
-    const terminal = document.getElementById("terminal");
-    const warning = document.getElementById("warning");
-    const bar = document.getElementById("bar");
-    const closeButton = document.getElementById("closeButton");
+<div id="result">
+  <h1 id="resultTitle">YOU GOT PRANKED!</h1>
+  <p id="resultMessage"></p>
+  <button id="restartButton">RESTART SIMULATION</button>
+</div>
 
-    let finished = false;
-    let line = 0;
-    let progress = 0;
+<script>
+"use strict";
 
-    const messages = [
-      "Loading virtual security modules...",
-      "[OK] Diagnostic interface loaded",
-      "Generating simulation session...",
-      "[OK] Session established",
-      "Checking virtual firewall rules...",
-      "Reading simulated packet headers...",
-      "Analyzing encrypted data blocks...",
-      "[ALERT] Unknown virtual connection",
-      "Preparing demonstration warning..."
-    ];
+const terminal = document.getElementById("terminal");
+const panel = document.getElementById("panel");
+const timer = document.getElementById("timer");
+const bar = document.getElementById("bar");
+const stopButton = document.getElementById("stopButton");
+const result = document.getElementById("result");
+const resultTitle = document.getElementById("resultTitle");
+const resultMessage = document.getElementById("resultMessage");
+const restartButton = document.getElementById("restartButton");
 
-    function print(message) {
-      terminal.textContent += "\n" + message;
-      window.scrollTo(0, document.body.scrollHeight);
+let remaining = 5;
+let active = false;
+let ended = false;
+let messageInterval = null;
+let countdownInterval = null;
+
+const messages = [
+  "[OK] Virtual session initialized",
+  "[OK] Loading simulated security modules",
+  "[SCAN] Checking virtual network sectors",
+  "[SCAN] Processing encrypted test blocks",
+  "[INFO] Simulated connection authenticated",
+  "[INFO] Generating virtual credentials",
+  "[SCAN] Searching demonstration database",
+  "[WARNING] Simulated firewall event detected",
+  "[INFO] Preparing fake password extraction"
+];
+
+function randomCode() {
+  return Math.floor(Math.random() * 16777216)
+    .toString(16)
+    .toUpperCase()
+    .padStart(6, "0");
+}
+
+function printLine(text) {
+  terminal.textContent += "\n" + text;
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+function clearTimers() {
+  clearInterval(messageInterval);
+  clearInterval(countdownInterval);
+}
+
+function reveal(stopped) {
+  if (ended) return;
+
+  ended = true;
+  active = false;
+  clearTimers();
+
+  panel.style.display = "none";
+  terminal.style.display = "none";
+  result.style.display = "block";
+
+  resultTitle.textContent = stopped
+    ? "SIMULATION STOPPED!"
+    : "YOU GOT PRANKED!";
+
+  resultMessage.textContent = stopped
+    ? "You stopped the fake attack. Nothing was accessed or changed."
+    : "The simulated password extraction reached 100%. No real passwords were accessed. It was all an animation!";
+}
+
+function beginCountdown() {
+  panel.style.display = "block";
+  active = true;
+
+  remaining = 5;
+  timer.textContent = "00:5";
+  bar.style.width = "0%";
+
+  printLine("[ALERT] Simulated extraction initiated");
+
+  countdownInterval = setInterval(function () {
+    if (!active || ended) return;
+
+    remaining -= 1;
+
+    timer.textContent =
+      "00:" + String(remaining).padStart(2, "0");
+
+    const progress = ((5 - remaining) / 5) * 100;
+    bar.style.width = progress + "%";
+
+    printLine(
+      "[VIRTUAL DATA] Block " +
+      randomCode() +
+      " / " +
+      Math.round(progress) +
+      "% simulated"
+    );
+
+    if (remaining <= 0) {
+      reveal(false);
     }
+  }, 1000);
+}
 
-    function finish() {
-      if (finished) return;
-      finished = true;
-      clearInterval(messageTimer);
-      clearInterval(progressTimer);
+function startSimulation() {
+  clearTimers();
 
-      warning.style.display = "none";
-      terminal.textContent =
-        "====================================\n" +
-        "          YOU GOT PRANKED!\n" +
-        "====================================\n\n" +
-        "Nothing was hacked.\n" +
-        "No files or passwords were accessed.\n" +
-        "No network connection was made.\n\n" +
-        "This was just a browser animation :)";
+  remaining = 5;
+  active = false;
+  ended = false;
+
+  panel.style.display = "none";
+  result.style.display = "none";
+  terminal.style.display = "block";
+
+  terminal.textContent =
+    "FAKEHACK v6 - SECURITY SIMULATION\n" +
+    "INITIALIZING VIRTUAL ENVIRONMENT...\n";
+
+  let index = 0;
+
+  messageInterval = setInterval(function () {
+    if (ended) return;
+
+    if (index < messages.length) {
+      printLine(
+        "[0x" + randomCode() + "] " + messages[index]
+      );
+
+      index++;
+    } else {
+      clearInterval(messageInterval);
+      beginCountdown();
     }
+  }, 600);
+}
 
-    closeButton.addEventListener("click", finish);
+stopButton.addEventListener("click", function () {
+  reveal(true);
+});
 
-    let progressTimer;
+restartButton.addEventListener("click", startSimulation);
 
-    function showWarning() {
-      warning.style.display = "block";
+startSimulation();
+</script>
 
-      progressTimer = setInterval(function () {
-        if (finished) return;
-
-        progress += 10;
-        bar.style.width = progress + "%";
-
-        if (progress >= 100) {
-          clearInterval(progressTimer);
-          setTimeout(finish, 1000);
-        }
-      }, 350);
-    }
-
-    const messageTimer = setInterval(function () {
-      if (finished) return;
-
-      if (line < messages.length) {
-        const randomCode =
-          Math.floor(Math.random() * 0xFFFFFF)
-            .toString(16)
-            .toUpperCase()
-            .padStart(6, "0");
-
-        print("[0x" + randomCode + "] " + messages[line]);
-        line++;
-      } else {
-        clearInterval(messageTimer);
-        showWarning();
-      }
-    }, 700);
-  </script>
 </body>
 </html>
