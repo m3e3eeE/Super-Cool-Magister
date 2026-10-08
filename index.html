@@ -115,7 +115,14 @@ function finish() {
   warning.style.display = "none";
 
   terminal.textContent =
-    "Thanks for your info.";
+    "========================================\n" +
+    "          YOU GOT PRANKED! :)\n" +
+    "========================================\n\n" +
+    "This was only a harmless simulation.\n\n" +
+    "No files were accessed.\n" +
+    "No passwords were collected.\n" +
+    "No network connections were made.\n\n" +
+    "Everything you saw was just an animation.";
 }
 
 const messageTimer = setInterval(function() {
