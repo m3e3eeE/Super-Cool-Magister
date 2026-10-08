@@ -5,18 +5,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Security Simulation</title>
+
 <style>
   body {
     margin: 0;
     background: #050805;
     color: #00ff41;
-    font: 16px Consolas, monospace;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 17px;
   }
 
   #terminal {
     padding: 25px;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+    line-height: 1.5;
   }
 
   #warning {
@@ -25,79 +28,129 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: min(430px, 85vw);
+    width: min(430px, 80vw);
+    padding: 25px;
     background: #f4f4f4;
     color: #171717;
-    border-top: 5px solid #c53030;
-    padding: 25px;
-    font: 16px Arial, sans-serif;
-    box-shadow: 0 0 80px #e22a2a55;
+    border-top: 6px solid #c53030;
+    box-shadow: 0 0 70px #ff222266;
+    font-family: Arial, sans-serif;
+    z-index: 10;
+  }
+
+  #warning h2 {
+    color: #c53030;
   }
 
   button {
-    padding: 10px 20px;
+    padding: 12px 20px;
     cursor: pointer;
+    border: none;
+    background: #333;
+    color: white;
+    border-radius: 4px;
+  }
+
+  #progress {
+    width: 100%;
+    height: 12px;
+    background: #ddd;
+    margin: 20px 0;
+  }
+
+  #bar {
+    width: 0%;
+    height: 100%;
+    background: #c53030;
+    transition: width 0.5s;
   }
 </style>
 </head>
+
 <body>
 
 <div id="terminal">INITIALIZING SECURITY SIMULATION...</div>
 
-<div id="warning">
+<div id="warning" role="dialog" aria-label="Simulation security alert">
   <h2>⚠ Security Alert</h2>
   <p>Suspicious remote connection detected.</p>
   <p>Analyzing simulated security event...</p>
-  <p><strong>Training simulation — no real threat.</strong></p>
+
+  <div id="progress">
+    <div id="bar"></div>
+  </div>
+
+  <p><strong>This is a training simulation, not a real warning.</strong></p>
   <button onclick="finish()">Close simulation</button>
 </div>
 
 <script>
 const terminal = document.getElementById("terminal");
 const warning = document.getElementById("warning");
+const bar = document.getElementById("bar");
+
+let running = true;
+let step = 0;
+let progress = 0;
 
 const messages = [
   "Loading security modules...",
-  "Establishing simulated connection...",
-  "SESSION AUTHENTICATED",
+  "[OK] Modules initialized",
+  "Establishing simulated remote connection...",
+  "[OK] Session authenticated",
   "Scanning virtual sectors...",
+  "[SCAN] 0xA73F291B - VERIFIED",
+  "[SCAN] 0xB492C810 - VERIFIED",
   "Analyzing encrypted blocks...",
   "Checking firewall rules...",
-  "WARNING: UNKNOWN CONNECTION DETECTED",
+  "[WARNING] Unknown simulated connection detected!",
   "Preparing security alert..."
 ];
 
-let running = true;
-
-function wait(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function start() {
-  for (const message of messages) {
-    if (!running) return;
-    await wait(1000);
-    if (!running) return;
-    terminal.textContent += "\n" + message;
-  }
-
-  warning.style.display = "block";
-  await wait(5000);
-
-  if (running) finish();
-}
-
 function finish() {
   running = false;
+  clearInterval(messageTimer);
+  clearInterval(progressTimer);
+
   warning.style.display = "none";
-  document.body.style.background = "#050805";
+
   terminal.textContent =
-    "Thanks for your info.:)\n\n" +
-    
+    "Thanks for your info.";
 }
 
-start();
+const messageTimer = setInterval(function() {
+  if (!running) return;
+
+  if (step < messages.length) {
+    terminal.textContent += "\n" + messages[step];
+    step++;
+    window.scrollTo(0, document.body.scrollHeight);
+  } else {
+    clearInterval(messageTimer);
+    showWarning();
+  }
+}, 700);
+
+let progressTimer;
+
+function showWarning() {
+  warning.style.display = "block";
+
+  progressTimer = setInterval(function() {
+    if (!running) return;
+
+    progress += 10;
+    bar.style.width = progress + "%";
+
+    if (progress >= 100) {
+      clearInterval(progressTimer);
+      setTimeout(function() {
+        if (running) finish();
+      }, 1000);
+    }
+  }, 350);
+}
 </script>
+
 </body>
 </html>
-
